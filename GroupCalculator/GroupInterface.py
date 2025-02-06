@@ -51,7 +51,6 @@ class GroupInterface(ABC):
         :return: a dictionary mapping group IDs to dictionaries containing group information. Each group information
         dictionary contains a 'name' key which holds the group name (str) and a 'members' key which holds a list of
         member names (list[str]).
-
         """
         pass
 
@@ -61,7 +60,6 @@ class GroupInterface(ABC):
         Method for selecting a file.
 
         :return: None
-
         """
         pass
 
