@@ -16,9 +16,10 @@ class MyFrame1(wx.Frame):
 
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=_(u"Create Group"), pos=wx.DefaultPosition,
-                          size=wx.Size(1000, 500), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
+                          size=wx.Size(1000, 384), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
         self.SetSizeHints(wx.Size(-1, -1), wx.DefaultSize)
         self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
+        self.groups: dict[int, dict[str, list[str]]]
 
         bSizer2 = wx.BoxSizer(wx.VERTICAL)
 
