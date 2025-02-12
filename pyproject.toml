@@ -1,0 +1,9 @@
+[project]
+name = "wxcreategroups"
+version = "0.1.0"
+readme = "README.md"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "wxpython>=4.2.2",
+]

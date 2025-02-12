@@ -1,63 +1,84 @@
 from abc import ABC, abstractmethod
+from GroupCalculator import Student
 
 
 class GroupInterface(ABC):
     """
-    Reset a group to its initial state.
-
-    :return: None
+    An abstract base class that defines the interface for group operations.
+    This interface ensures that any class implementing it provides methods for managing,
+    creating, visualizing, and retrieving groups.
     """
+
     @abstractmethod
-    def reset_group(self):
+    def reset_group(self) -> None:
         """
-        Reset a group to its initial state.
+        Resets all group assignments to their initial state.
+
+        This method should clear any existing groups and prepare the system for a fresh group generation.
 
         :return: None
         """
         pass
 
     @abstractmethod
-    def create_groups(self):
+    def create_groups(self) -> None:
         """
-        Create groups.
+        Creates a new set of groups based on predefined rules.
+
+        The implementation should ensure a fair distribution of members and avoid repetition in consecutive rounds.
 
         :return: None
         """
         pass
 
     @abstractmethod
-    def visualise_groups(self) -> dict[int, dict[str, list[str]]]:
+    def visualise_groups(self) -> dict[int, dict[str, list[Student]]]:
         """
-        :return: A dictionary containing groups, where the key is an integer representing the group ID and the value
-        is another dictionary. This nested dictionary has the structure where the key is a string representing the
-        group property and the value is a list of strings representing the members of that group.
+        Returns a dictionary representing the currently generated groups.
+
+        The dictionary structure is as follows:
+        - The key (int) represents the round number.
+        - The value (dict) maps group labels (str) to a list of member names (list[str]).
+
+        :return: A dictionary containing the visual representation of the groups.
+        :rtype: dict[int, dict[str, list[str]]]
         """
         pass
 
     @abstractmethod
-    def get_current_groups(self) -> dict[int, dict[str, list[str]]]:
+    def get_current_groups(self) -> dict[int, dict[str, list[Student]]]:
         """
-        :return: A dictionary containing information about the current groups.
-            The dictionary keys are integers representing group IDs.
-            The corresponding values are dictionaries with string keys (group information)
-            and lists of strings (group members).
+        Retrieves the groups from the most recent round.
+
+        The dictionary structure is:
+        - The key (int) represents the round number.
+        - The value (dict) maps group labels (str) to a list of member names (list[str]).
+
+        :return: A dictionary containing the latest group allocations.
+        :rtype: dict[int, dict[str, list[str]]]
         """
         pass
 
     @abstractmethod
-    def get_all_groups(self) -> dict[int, dict[str, list[str]]]:
+    def get_all_groups(self) -> dict[int, dict[str, list[Student]]]:
         """
+        Retrieves all previously created group assignments.
 
-        :return: a dictionary mapping group IDs to dictionaries containing group information. Each group information
-        dictionary contains a 'name' key which holds the group name (str) and a 'members' key which holds a list of
-        member names (list[str]).
+        The dictionary structure is:
+        - The key (int) represents the round number.
+        - The value (dict) maps group labels (str) to a list of member names (list[str]).
+
+        :return: A dictionary containing all generated group assignments across multiple rounds.
+        :rtype: dict[int, dict[str, list[str]]]
         """
         pass
 
     @abstractmethod
-    def select_from_file(self):
+    def select_from_file(self, file_path: str) -> None:
         """
-        Method for selecting a file.
+        Allows the user to select a file containing participant data.
+
+        The implementation should read the file, extract relevant information, and prepare it for group generation.
 
         :return: None
         """
@@ -65,4 +86,12 @@ class GroupInterface(ABC):
 
     @abstractmethod
     def can_repeat(self) -> int:
+        """
+        Determines the maximum number of unique group combinations possible.
+
+        This method should calculate how many distinct group assignments can be made before repetition occurs.
+
+        :return: The maximum number of unique groupings (int).
+        :rtype: int
+        """
         pass
