@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GroupCalculator &#8212; GroupCalculator 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for GroupCalculator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">wx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">wx.grid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+
+<div class="viewcode-block" id="GroupCalculator">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GroupCalculator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Eine Klasse zur Berechnung und Verwaltung von Schülergruppen.</span>
+
+<span class="sd">    :param num_students: Die Anzahl der Schüler.</span>
+<span class="sd">    :type num_students: int</span>
+<span class="sd">    :param group_size: Die gewünschte Gruppengröße.</span>
+<span class="sd">    :type group_size: int</span>
+<span class="sd">    :raises ValueError: Wenn die Anzahl der Schüler kleiner als die Gruppengröße ist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_students</span><span class="p">,</span> <span class="n">group_size</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialisiert die GroupCalculator-Instanz.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">num_students</span> <span class="o">&lt;</span> <span class="n">group_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Die Anzahl der Schüler muss größer oder gleich der Gruppengröße sein.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_students</span> <span class="o">=</span> <span class="n">num_students</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_size</span> <span class="o">=</span> <span class="n">group_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_combinations</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_counter</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">student_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_students</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># Schüler als Zahlen (1, 2, 3, ...)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_header</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_name_col</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_name_col</span> <span class="o">=</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="GroupCalculator.reset_groups">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.reset_groups">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setzt alle Gruppen und Runden zurück.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_counter</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="GroupCalculator.create_groups">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.create_groups">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Erstellt Gruppen für die aktuelle Runde.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">student_list</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Schülerliste neu mischen</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">student_list</span><span class="p">)</span>
+        <span class="n">current_groups</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">available_students</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">student_list</span><span class="p">)</span>
+        <span class="n">group_id</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span>
+
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">available_students</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_size</span><span class="p">:</span>
+            <span class="n">group</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">student</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">available_students</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_size</span><span class="p">:</span>
+                    <span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">student</span><span class="p">)</span>
+                    <span class="n">available_students</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">student</span><span class="p">)</span>
+            <span class="n">current_groups</span><span class="p">[</span><span class="n">group_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+            <span class="n">group_id</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">group_id</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">remaining_students</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">available_students</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remaining_students</span><span class="p">:</span>
+            <span class="n">group_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">current_groups</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">student</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">remaining_students</span><span class="p">):</span>
+                <span class="n">current_groups</span><span class="p">[</span><span class="n">group_keys</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_keys</span><span class="p">)]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">student</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">round_counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_groups</span></div>
+
+
+<div class="viewcode-block" id="GroupCalculator.get_current_groups">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.get_current_groups">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_current_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Gibt die Gruppen der aktuellen Runde zurück.</span>
+
+<span class="sd">        :return: Ein Dictionary mit den Gruppen der aktuellen Runde.</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">round_counter</span><span class="p">,</span> <span class="p">{})</span></div>
+
+
+<div class="viewcode-block" id="GroupCalculator.get_round_count">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.get_round_count">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_round_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Gibt die Anzahl der erstellten Runden zurück.</span>
+
+<span class="sd">        :return: Die Anzahl der Runden.</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">round_counter</span></div>
+
+
+<div class="viewcode-block" id="GroupCalculator.select_from_file">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.select_from_file">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lädt Namen aus einer CSV-Datei mit den konfigurierten Optionen für Delimiter und Header.</span>
+
+<span class="sd">        :param file_path: Der Pfad zur CSV-Datei.</span>
+<span class="sd">        :type file_path: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_header</span><span class="p">:</span>
+                <span class="nb">next</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># Überspringt die Kopfzeile, falls eingestellt</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">student_list</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">first_name_col</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">last_name_col</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span>
+                                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_name_col</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_name_col</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="GroupCalculator.visualize_groups">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.visualize_groups">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visualize_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Gibt die aktuellen Gruppen aus.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">round_num</span><span class="p">,</span> <span class="n">groups</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Runde </span><span class="si">{</span><span class="n">round_num</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">students</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Gruppe </span><span class="si">{</span><span class="n">round_num</span><span class="si">}{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">students</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupCalculator.can_repeat">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupCalculator.can_repeat">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">can_repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Berechnet die maximale Anzahl an möglichen Gruppierungen ohne Wiederholung gleicher Paarungen.</span>
+
+<span class="sd">        :return: Die maximale Anzahl der möglichen Runden ohne Wiederholungen.</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_pairs_per_round</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_students</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_size</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">group_size</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">group_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">total_unique_pairs</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">comb</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_students</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">total_unique_pairs</span> <span class="o">//</span> <span class="n">num_pairs_per_round</span> <span class="k">if</span> <span class="n">num_pairs_per_round</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GroupApp">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GroupApp</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">Frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Eine wxPython-basierte GUI-Anwendung zur Erstellung und Verwaltung von Schülergruppen.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialisiert die GroupApp-Instanz.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Gruppengenerator&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">800</span><span class="p">,</span> <span class="mi">600</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">panel</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Panel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span> <span class="o">=</span> <span class="n">GroupCalculator</span><span class="p">(</span><span class="n">group_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">num_students</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Schriftart für die UI</span>
+        <span class="n">font</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Font</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">wx</span><span class="o">.</span><span class="n">FONTFAMILY_DEFAULT</span><span class="p">,</span> <span class="n">wx</span><span class="o">.</span><span class="n">FONTSTYLE_NORMAL</span><span class="p">,</span> <span class="n">wx</span><span class="o">.</span><span class="n">FONTWEIGHT_NORMAL</span><span class="p">)</span>
+
+        <span class="c1"># Tabelle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">CreateGrid</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetColLabelValue</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Gruppe&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetColLabelValue</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Teilnehmer&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetColSize</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">150</span><span class="p">)</span>  <span class="c1"># Breite der ersten Spalte</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetColSize</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>  <span class="c1"># Breite der zweiten Spalte</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetDefaultRowSize</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>  <span class="c1"># Zeilenhöhe</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetLabelFont</span><span class="p">(</span><span class="n">font</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetDefaultCellFont</span><span class="p">(</span><span class="n">font</span><span class="p">)</span>
+
+        <span class="c1"># Buttons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_button</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;CSV laden&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_numbers_button</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Schüler als Zahlen&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Nächste Runde&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Vorherige Runde&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_button</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reset&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">150</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+
+        <span class="c1"># Eingabefelder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spin_group_size</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">SpinCtrl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spin_students</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">SpinCtrl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+
+        <span class="c1"># Einstellungs-Widgets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delimiter_text_ctrl</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">TextCtrl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">delimiter</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_header_checkbox</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">CheckBox</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Header überspringen&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_header_checkbox</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">skip_header</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_name_col_input</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">SpinCtrl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">first_name_col</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_name_col_input</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">SpinCtrl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">last_name_col</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">40</span><span class="p">))</span>
+
+        <span class="c1"># Rundenanzeige</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_label</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">StaticText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Aktuelle Runde: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_round</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_label</span><span class="o">.</span><span class="n">SetFont</span><span class="p">(</span><span class="n">font</span><span class="p">)</span>
+
+        <span class="c1"># Layout mit wx.GridBagSizer für präzise Platzierung</span>
+        <span class="n">sizer</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">GridBagSizer</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># Abstand zwischen den Elementen</span>
+
+        <span class="c1"># Tabelle</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">span</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">EXPAND</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+        <span class="c1"># Buttons</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_button</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_numbers_button</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reset_button</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># Gruppengröße und Anzahl der Studenten</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">StaticText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Gruppengröße:&quot;</span><span class="p">),</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spin_group_size</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">StaticText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Anzahl der Studenten:&quot;</span><span class="p">),</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spin_students</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># CSV-Einstellungen</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">StaticText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;CSV Delimiter:&quot;</span><span class="p">),</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delimiter_text_ctrl</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skip_header_checkbox</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># Spalten für Vor- und Nachname</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">StaticText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Spalte für Vorname:&quot;</span><span class="p">),</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_name_col_input</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">StaticText</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Spalte für Nachname:&quot;</span><span class="p">),</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_name_col_input</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER_VERTICAL</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># Rundenanzeige</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">round_label</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">span</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">flag</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">ALL</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">ALIGN_CENTER</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># Sizer anpassen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">panel</span><span class="o">.</span><span class="n">SetSizer</span><span class="p">(</span><span class="n">sizer</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">AddGrowableRow</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Tabelle wächst vertikal</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">AddGrowableCol</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Erste Spalte wächst horizontal</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">AddGrowableCol</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">AddGrowableCol</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">sizer</span><span class="o">.</span><span class="n">AddGrowableCol</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="c1"># Event-Bindings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_button</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_BUTTON</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_load_csv</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_numbers_button</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_BUTTON</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_generate_numbers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_BUTTON</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_next_round</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_BUTTON</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_prev_round</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_button</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_BUTTON</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_reset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_header_checkbox</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_CHECKBOX</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_toggle_header_skip</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spin_students</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_SPINCTRL</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_students_changed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spin_group_size</span><span class="o">.</span><span class="n">Bind</span><span class="p">(</span><span class="n">wx</span><span class="o">.</span><span class="n">EVT_SPINCTRL</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_group_size_changed</span><span class="p">)</span>  <span class="c1"># Event-Handler für Gruppengröße</span>
+
+<div class="viewcode-block" id="GroupApp.on_prev_round">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_prev_round">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_prev_round</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wechselt zur vorherigen Runde.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">current_round</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+        <span class="c1"># Rundenanzeige aktualisieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_next_round">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_next_round">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_next_round</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Erstellt eine neue Runde oder wechselt zur nächsten Runde.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Gruppen erstellen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">create_groups</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_round_count</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_current_groups</span><span class="p">())</span>
+
+        <span class="c1"># Buttons aktivieren/deaktivieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_round_count</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">can_repeat</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+        <span class="c1"># Rundenanzeige aktualisieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_reset">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_reset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setzt alle Gruppen, Runden und die Tabelle zurück.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">reset_groups</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">({})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+        <span class="c1"># Rundenanzeige aktualisieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span>
+
+        <span class="n">wx</span><span class="o">.</span><span class="n">MessageBox</span><span class="p">(</span><span class="s2">&quot;Alle Gruppen und Runden wurden zurückgesetzt.&quot;</span><span class="p">,</span> <span class="s2">&quot;Reset&quot;</span><span class="p">,</span> <span class="n">wx</span><span class="o">.</span><span class="n">ICON_INFORMATION</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_load_csv">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_load_csv">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_load_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lädt die CSV-Datei und zeigt eine Bestätigung an.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">wx</span><span class="o">.</span><span class="n">FileDialog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;CSV-Datei auswählen&quot;</span><span class="p">,</span> <span class="n">wildcard</span><span class="o">=</span><span class="s2">&quot;CSV files (*.csv)|*.csv&quot;</span><span class="p">,</span>
+                           <span class="n">style</span><span class="o">=</span><span class="n">wx</span><span class="o">.</span><span class="n">FD_OPEN</span> <span class="o">|</span> <span class="n">wx</span><span class="o">.</span><span class="n">FD_FILE_MUST_EXIST</span><span class="p">)</span> <span class="k">as</span> <span class="n">fileDialog</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fileDialog</span><span class="o">.</span><span class="n">ShowModal</span><span class="p">()</span> <span class="o">==</span> <span class="n">wx</span><span class="o">.</span><span class="n">ID_CANCEL</span><span class="p">:</span>
+                <span class="k">return</span>
+
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">fileDialog</span><span class="o">.</span><span class="n">GetPath</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delimiter_text_ctrl</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">skip_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_header_checkbox</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">first_name_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_name_col_input</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">last_name_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_name_col_input</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">select_from_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="n">wx</span><span class="o">.</span><span class="n">MessageBox</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">student_list</span><span class="p">)</span><span class="si">}</span><span class="s2"> Namen geladen!&quot;</span><span class="p">,</span> <span class="s2">&quot;Erfolg&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Gruppen erstellen</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">create_groups</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_round_count</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_current_groups</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+            <span class="c1"># Rundenanzeige aktualisieren</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_generate_numbers">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_generate_numbers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_generate_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generiert Schüler als Zahlen basierend auf der eingegebenen Anzahl.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_students</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spin_students</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">num_students</span> <span class="o">=</span> <span class="n">num_students</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">student_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_students</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># Schüler als Zahlen (1, 2, 3, ...)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">reset_groups</span><span class="p">()</span>  <span class="c1"># Gruppen zurücksetzen</span>
+
+        <span class="c1"># Gruppen erstellen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">create_groups</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_round_count</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_current_groups</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+        <span class="c1"># Rundenanzeige aktualisieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span>
+
+        <span class="n">wx</span><span class="o">.</span><span class="n">MessageBox</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_students</span><span class="si">}</span><span class="s2"> Schüler als Zahlen generiert.&quot;</span><span class="p">,</span> <span class="s2">&quot;Erfolg&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_students_changed">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_students_changed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_students_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aktualisiert die Schülerliste, wenn die Anzahl der Schüler geändert wird.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_students</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spin_students</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">num_students</span> <span class="o">=</span> <span class="n">num_students</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">student_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_students</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># Schüler als Zahlen (1, 2, 3, ...)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">reset_groups</span><span class="p">()</span>  <span class="c1"># Gruppen zurücksetzen</span>
+
+        <span class="c1"># Gruppen erstellen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">create_groups</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_round_count</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_current_groups</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+        <span class="c1"># Rundenanzeige aktualisieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_group_size_changed">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_group_size_changed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_group_size_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aktualisiert die Gruppengröße und erstellt neue Gruppen.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">group_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spin_group_size</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">group_size</span> <span class="o">=</span> <span class="n">group_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">reset_groups</span><span class="p">()</span>  <span class="c1"># Gruppen zurücksetzen</span>
+
+        <span class="c1"># Gruppen erstellen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">create_groups</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_round</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_round_count</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">get_current_groups</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_round_button</span><span class="o">.</span><span class="n">Enable</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_round_button</span><span class="o">.</span><span class="n">Disable</span><span class="p">()</span>
+
+        <span class="c1"># Rundenanzeige aktualisieren</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_round_label</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.update_grid">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.update_grid">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aktualisiert die Tabelle mit den aktuellen Gruppen.</span>
+
+<span class="sd">        :param groups: Die aktuellen Gruppen.</span>
+<span class="sd">        :type groups: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ClearGrid</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetRowLabelSize</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">GetNumberRows</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">AppendRows</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">GetNumberRows</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">row_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">group_name</span><span class="p">,</span> <span class="n">students</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetCellValue</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">group_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">SetCellValue</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">students</span><span class="p">)))</span>  <span class="c1"># Schüler als Zahlen oder Namen darstellen</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ForceRefresh</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.update_round_label">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.update_round_label">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_round_label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aktualisiert die Rundenanzeige.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_label</span><span class="o">.</span><span class="n">SetLabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Aktuelle Runde: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_round</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GroupApp.on_toggle_header_skip">
+<a class="viewcode-back" href="../GroupCalculator.html#GroupCalculator.GroupApp.on_toggle_header_skip">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_toggle_header_skip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Aktiviert oder deaktiviert das Überspringen des Headers.</span>
+
+<span class="sd">        :param event: Das auslösende Ereignis.</span>
+<span class="sd">        :type event: wx.Event</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gc</span><span class="o">.</span><span class="n">skip_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_header_checkbox</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">wx</span><span class="o">.</span><span class="n">App</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">GroupApp</span><span class="p">()</span>
+    <span class="n">frame</span><span class="o">.</span><span class="n">Show</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">GroupCalculator</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Inhalt:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../GroupCalculator.html">GroupCalculator</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Tim Schütte, Felix Brandt.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
